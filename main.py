@@ -1,67 +1,48 @@
 import telebot
 from telebot import types
+import os
 
 bot = telebot.TeleBot("7861726729:AAHaewmqWXT5cnYe3ucLLNWxZ8vv-mctQB4")
-name = ''
-surname = ''
-age = 0
+image_list = [image[:-4] for image in os.listdir('images')]
+audio_list = [audio[:-4] for audio in os.listdir('audio')]
 
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     keyboard = types.InlineKeyboardMarkup()
-    for i in range(5):
-        key = types.InlineKeyboardButton(text=f'И{i}', callback_data=f'{i}')
-        keyboard.add(key)
-    text = ("Выбери какое изображене вывести."
-            "\nНапиши выбрать аудиофайл для вывода списка аудиофалов.")
+    key = types.InlineKeyboardButton(text='Выбрать изображение', callback_data='image')
+    keyboard.add(key)
+    key = types.InlineKeyboardButton(text='Выбрать аудиофайл', callback_data='audio')
+    keyboard.add(key)
+    text = 'Выбирете что вывести\nНапишите /get чтобы получить ссылку на репозиторий'
     bot.send_message(message.from_user.id, text=text, reply_markup=keyboard)
 
 
-@bot.message_handler(content_types=['text'])
-def start(message):
-    if message.text == 'выбрать аудиофайл':
-        keyboard = types.InlineKeyboardMarkup()
-        for i in range(5):
-            key = types.InlineKeyboardButton(text='А{i}', callback_data='{i}')
-            keyboard.add(key)
-        bot.send_message(message.from_user.id, "Выбирете аудиофайл", reply_markup=keyboard)
-
-
-
-def get_name(message): #получаем фамилию
-    global name
-    name = message.text
-    bot.send_message(message.from_user.id, 'Какая у тебя фамилия?')
-    bot.register_next_step_handler(message, get_surname)
-
-
-def get_surname(message):
-    global surname
-    surname = message.text
-    bot.send_message(message.from_user.id, 'Сколько тебе лет?')
-    bot.register_next_step_handler(message, get_age)
-
-
-def get_age(message):
-    global age
-    try:
-        age = int(message.text) #проверяем, что возраст введен корректно
-    except Exception:
-        bot.send_message(message.from_user.id, 'Цифрами, пожалуйста')
-    keyboard = types.InlineKeyboardMarkup() # наша клавиатура
-    key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')  # кнопка «Да»
-    keyboard.add(key_yes)  # добавляем кнопку в клавиатуру
-    key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
-    keyboard.add(key_no)
-    question = 'Тебе ' + str(age) + ' лет, тебя зовут ' + name + ' ' + surname + '?'
-    bot.send_message(message.from_user.id, text=question, reply_markup=keyboard)
+@bot.message_handler(commands=['get'])
+def get(message):
+    bot.send_message(message.from_user.id, text='https://github.com/leonidgerasim/OOP_tg_bot.git')
 
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_worker(call):
-    if call.data == "yes":
-        bot.send_message(call.message.chat.id, 'Запомню : )')
+    if call.data == 'image':
+        keyboard = types.InlineKeyboardMarkup()
+        for image in image_list:
+            key = types.InlineKeyboardButton(text=image, callback_data=image)
+            keyboard.add(key)
+        text = 'Выбирете изображение'
+        bot.send_message(call.message.chat.id, text=text, reply_markup=keyboard)
+    elif call.data == 'audio':
+        keyboard = types.InlineKeyboardMarkup()
+        for audio in audio_list:
+            key = types.InlineKeyboardButton(text=audio, callback_data=audio)
+            keyboard.add(key)
+        text = 'Выбирете трек'
+        bot.send_message(call.message.chat.id, text=text, reply_markup=keyboard)
+    elif call.data in image_list:
+        bot.send_photo(call.message.chat.id, photo=open('images/' + call.data + '.png', 'rb'))
+    elif call.data in audio_list:
+        bot.send_audio(call.message.chat.id, audio=open('audio/' + call.data + '.mp3', 'rb'))
 
 
 bot.polling(none_stop=True, interval=0)
